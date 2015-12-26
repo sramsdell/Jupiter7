@@ -68,8 +68,8 @@ class Game_State:
         self.level += num
 
     def get_mob_group(self):
-        test = self.mob_group
-        return test
+
+        return self.mob_group.copy()
     def mob_group_reset(self):
         self.mob_group = set([])
     def add_mob_group(self, mob):
@@ -80,16 +80,16 @@ class Game_State:
         self.mob_group.discard(mob)
 
     def get_bullet_group(self):
-        test = self.bullet_group
-        return test
+
+        return self.bullet_group.copy()
     def add_bullet_group(self,bull):
         self.bullet_group.add(bull)
     def remove_bullet_group(self,bull):
         self.bullet_group.discard(bull)
 
     def get_cap_group(self):
-        test = self.capsule_group
-        return test
+
+        return self.capsule_group.copy()
     def cap_group_reset(self):
         self.capsule_group = set([])
     def add_cap_group(self, cap):
@@ -331,6 +331,7 @@ class Rocket:
     def move(self,key):
         if key == "down":
             self.vel[1] += 2
+
         if key == "left":
             self.vel[0] -= 1
         if key == "right":
