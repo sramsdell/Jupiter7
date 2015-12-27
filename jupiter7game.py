@@ -23,9 +23,10 @@ WIDTH = 200
 SIZE = (WIDTH, HEIGHT)
 ROCKET_SPAWN = (100,450)
 
-class Game_State:
+class UI:
     def __init__(self):
 
+        #self.manager = StateManager(screen)
         self.score = 0
         self.lives = 3
         self.level = 0
@@ -99,6 +100,7 @@ class Game_State:
 
     def reset_game(self,rocket):
         rocket.reset()
+        rocket.ammo_reset()
         self.lives_reset()
         self.mob_group_reset()
         self.cap_group_reset()
@@ -106,6 +108,8 @@ class Game_State:
         rocket.update_color_shield(None)
         self.game_started = False
         self.level = 0
+        #self.manager.change(StartScreen(screen))
+
 
 #helper functions
 def rot_center(image, angle):
@@ -159,6 +163,9 @@ class ImageInfo:
 ##center, size, radius = 0, animated = False, lifespan = None
 rocket_info = ImageInfo((64/4,64/4),(64/2,64/2),32/2)
 rocket_image = pygame.image.load(os.path.join("images","small_rocket.png"))
+
+big_rocket_info = ImageInfo((150/2,150/2),(150,150),75)
+big_rocket_image = pygame.image.load(os.path.join("images","big_rocket.png"))
 
 aura_info = ImageInfo((64/4,64/4),(64/2,64/2),32/2)
 aura_image = pygame.image.load(os.path.join("images","aura2.png"))
@@ -279,8 +286,8 @@ class Rocket:
         self.image_size = info.get_size()
         self.radius = info.get_radius()
         self.age = 0
-        self.color = "red"
-        self.ammo = 3
+        self.color = None
+        self.ammo = 0
 
     def color_shield(self, mob_color):
         if mob_color == self.color:
@@ -355,6 +362,8 @@ class Rocket:
         self.pos[0] = ROCKET_SPAWN[0]
         self.pos[1] = ROCKET_SPAWN[1]
 
+    def ammo_reset(self):
+        self.ammo = 0
 
 class Bullet(Sprite):
     def __init__(self, pos, vel, ang, ang_vel, image, info, color , sound = None):
@@ -508,7 +517,7 @@ def start_again():
 
 class StateManager:
     def __init__(self,screen):
-        self.change(SplashState(screen))
+        self.change(StartScreen(screen))
 
     def change(self,state):
         self.state = state
@@ -557,10 +566,10 @@ def keyup(key):
         if key.key == pygame.K_RIGHT:
             my_rocket.stop_move("right")
 
-class SplashState(MasterState):
+class LevelOne(MasterState):
     def __init__(self,screen):
         MasterState.__init__(self,screen)
-        self.background = pygame.image.load(os.path.join("images","splashscreen.png"))
+        self.background = background_image
 
         self.myfont = pygame.font.SysFont("monospace", 15)
         self.label = self.myfont.render("wheres the ghost!", 1, (255,255,0))
@@ -586,31 +595,103 @@ class SplashState(MasterState):
             if event.type == pygame.USEREVENT+2:
                 capsule_spawner()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_a:
-                    self.current.change(StateTwo(screen))
+                if event.key == pygame.K_p:
+                    self.current.change(PauseState(screen))
         return True
 
 
-class StateTwo(MasterState):
+class StartScreen(MasterState):
     def __init__(self,screen):
         MasterState.__init__(self,screen)
-        self.background = pygame.image.load(os.path.join("images","backround.png"))
-        self.font = pygame.font.SysFont("monospace",24)
-        self.text = self.font.render("fuckyeah",1,(0,0,0))
+        self.background = background_image
+        self.font = pygame.font.SysFont("fixedsys",24)
+        self.text = self.font.render("SPACE to start",1,RED)
+        self.age = 0
     def update(self):
         pass
     def render(self,screen):
         screen.blit(self.background,(0,0))
-        screen.blit(self.text,(50,300))
+        screen.blit(self.text,(40,320))
+
+        #screen.blit(big_rocket_image,(0,100))
+        self.age += 0.2
+        current_index = (self.age % 4) // 1
+
+
+        scroll = [150*(current_index+1),0,150,150]
+        screen.blit(big_rocket_image,(0,100),area=scroll)
+
+
     def event_handler(self,events):
         for event in events:
             self.quit(event)
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_a:
-                    self.current.change(SplashState(screen))
+                if event.key == pygame.K_SPACE:
+                    self.current.change(LevelOne(screen))
+                if event.key == pygame.K_m:
+                    self.current.change(InstructionState(screen))
         return True
 
+class PauseState(MasterState):
+    def __init__(self,screen):
+        MasterState.__init__(self,screen)
+        self.background = background_image
+        self.font = pygame.font.SysFont("fixedsys",24)
+        self.text = self.font.render("Pause",1,RED)
+        self.age = 0
+    def update(self):
+        pass
+    def render(self,screen):
+        screen.blit(self.background,(0,0))
+        screen.blit(self.text,(40,320))
 
+        #screen.blit(big_rocket_image,(0,100))
+        #self.age += 0.2
+        #current_index = (self.age % 4) // 1
+
+
+        #scroll = [150*(current_index+1),0,150,150]
+        #screen.blit(big_rocket_image,(0,100),area=scroll)
+
+
+    def event_handler(self,events):
+        for event in events:
+            self.quit(event)
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_p:
+                    self.current.change(LevelOne(screen))
+
+        return True
+
+class InstructionState(MasterState):
+    def __init__(self,screen):
+        MasterState.__init__(self,screen)
+        self.background = background_image
+        self.font = pygame.font.SysFont("fixedsys",18)
+        self.text = self.font.render("FUCK YOU FIGURE IT OUT",1,RED)
+        self.age = 0
+    def update(self):
+        pass
+    def render(self,screen):
+        screen.blit(self.background,(0,0))
+        screen.blit(self.text,(40,320))
+
+        #screen.blit(big_rocket_image,(0,100))
+        #self.age += 0.2
+        #current_index = (self.age % 4) // 1
+
+
+        #scroll = [150*(current_index+1),0,150,150]
+        #screen.blit(big_rocket_image,(0,100),area=scroll)
+
+
+    def event_handler(self,events):
+        for event in events:
+            self.quit(event)
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_m:
+                    self.current.change(StartScreen(screen))
+        return True
 #inits
 the_ghost = Ghost([40,100],[1,1],0,0,ghost_image,ghost_info,"blue")
 the_wind = Wind([40,150],[1,1],0,2,spirl_blue_image,spirl_info,"blue")
@@ -643,14 +724,7 @@ blue_wind=()
 green_wind =()
 a_capsule = ()
 
-game = Game_State()
-
-##timer = simplegui.create_timer(10.0, mob_spawner)
-##timer2 = simplegui.create_timer(10.0, capsule_spawner)
-##timer2.start()
-##timer.start()
-
-
+game = UI()
 
 pygame.time.set_timer(pygame.USEREVENT+1,100)
 pygame.time.set_timer(pygame.USEREVENT+2,102)
