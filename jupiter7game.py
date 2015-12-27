@@ -98,9 +98,10 @@ class UI:
     def remove_cap_group(self,cap):
         self.capsule_group.discard(cap)
 
-    def reset_game(self,rocket):
+    def reset_game(self,rocket,manager,screen):
         rocket.reset()
         rocket.ammo_reset()
+
         self.lives_reset()
         self.mob_group_reset()
         self.cap_group_reset()
@@ -108,7 +109,7 @@ class UI:
         rocket.update_color_shield(None)
         self.game_started = False
         self.level = 0
-        #self.manager.change(StartScreen(screen))
+        manager.current.change(StartScreen(screen))
 
 
 #helper functions
@@ -238,7 +239,7 @@ class Ghost(Sprite):
     def update(self):
         self.pos[0] += self.vel[0]
         self.pos[1] += math.cos(.1*self.pos[0])*2
-        if self.pos[0] + self.radius >= WIDTH or self.pos[0] - self.radius <= WIDTH - WIDTH:
+        if self.pos[0] + self.radius >= WIDTH -(self.radius*2) or self.pos[0] +( self.radius * 2) <= WIDTH - WIDTH:
             self.vel[0] *= -1
 
 class Bird(Sprite):
@@ -254,13 +255,13 @@ class Bird(Sprite):
         self.age += 0.07
     def update(self):
         self.pos[0] += self.vel[0]
-        self.pos[0] = self.pos[0] % WIDTH
+        self.pos[0] = self.pos[0] % (WIDTH +(self.radius))
 
 class Wind(Sprite):
     def __init__(self, pos, vel, ang, ang_vel, image, info, color , sound = None):
         Sprite.__init__(self, pos, vel, ang, ang_vel, image, info, color , sound = None)
     def draw(self,canvas):
-        self.age +=self.angle_vel
+        self.age += self.angle_vel
         the_age = int(self.age % 359)
 
         canvas.blit(rot_center(self.image,the_age),self.pos)
@@ -268,7 +269,7 @@ class Wind(Sprite):
     def update(self):
         self.angle += self.angle_vel
         self.pos[0] += self.vel[0]
-        if self.pos[0] + self.radius >= WIDTH or self.pos[0] - self.radius <= WIDTH - WIDTH:
+        if self.pos[0] + (self.radius*2) >= WIDTH or self.pos[0]  <= WIDTH - WIDTH:
             self.vel[0] *= -1
         self.pos[1] += self.vel[1]
 
@@ -354,13 +355,18 @@ class Rocket:
 
         if self.pos[1] + self.vel[1] <= ROCKET_SPAWN[1]:
 
-            if self.pos[0] + self.vel[0] >= 0 + self.radius and self.pos[0] + self.vel[0] <= WIDTH - self.radius:
+            if self.pos[0] + self.vel[0] >= 0  and self.pos[0] + self.vel[0] <= WIDTH - (self.radius*2):
                 self.pos[0] += self.vel[0]
                 self.pos[1] += self.vel[1]
-
+    def alt_vel(self,x,y):
+        self.vel = [x,y]
     def reset(self):
-        self.pos[0] = ROCKET_SPAWN[0]
-        self.pos[1] = ROCKET_SPAWN[1]
+        ##need to research later why setting vel to 0 didn't stop "sticking, auto vel bugs"
+        ## solution was to include key up handlers in the other states
+        #self.vel = [0,0]
+        self.pos = list(ROCKET_SPAWN)
+
+
 
     def ammo_reset(self):
         self.ammo = 0
@@ -409,7 +415,8 @@ def main():
     clock = pygame.time.Clock()
     manager = StateManager(screen)
     running = True
-
+    if False:
+        manager.change(PauseState(screen))
     while running:
         running = manager.state.event_handler(pygame.event.get())
 
@@ -423,7 +430,9 @@ def main():
 
 def score_point(rocket):
     if rocket.get_position()[1] - rocket.get_radius() <= 0:
+        #rocket.alt_vel(0,0)
         game.alt_score(1)
+
         rocket.reset()
 
 def process_sprite_group(the_set1,canvas):
@@ -510,10 +519,11 @@ def rocket_caps_collide(rocket,caps):
     for cap in caps:
         rocket_cap_collide(rocket,cap)
 
-def start_again():
+def start_again(manager):
 
     if game.get_lives() == 0:
-        game.reset_game(my_rocket)
+
+        game.reset_game(my_rocket,manager,screen)
 
 class StateManager:
     def __init__(self,screen):
@@ -542,9 +552,9 @@ class MasterState:
 def keydown(key):
     if key.type == pygame.KEYDOWN:
         if key.key == pygame.K_UP:
-            print "up"
+
             my_rocket.start_thruster("up")
-            #game.alt_game_started(True)
+
         if key.key == pygame.K_DOWN:
             my_rocket.move("down")
         if key.key == pygame.K_LEFT:
@@ -553,7 +563,7 @@ def keydown(key):
             my_rocket.move("right")
         if key.key == pygame.K_SPACE:
             bullet_spawner()
-            game.alt_game_started(True)
+
 
 def keyup(key):
     if key.type == pygame.KEYUP:
@@ -571,19 +581,33 @@ class LevelOne(MasterState):
         MasterState.__init__(self,screen)
         self.background = background_image
 
-        self.myfont = pygame.font.SysFont("monospace", 15)
-        self.label = self.myfont.render("wheres the ghost!", 1, (255,255,0))
+        self.myfont = pygame.font.SysFont("fixedsys", 20)
+##        self.liveslabel = self.myfont.render("Lives = " +str(game.get_lives()), 1,RED)
+##        self.ammolabel = self.myfont.render("Ammo = "+str(my_rocket.get_ammo()),1,RED)
+##        self.scorelabel = self.myfont.render("Score = "+str(game.get_score()),1,RED)
+##        self.levellabel = self.myfont.render("Level = "+str(game.get_level()),1,RED)
+
 
     def update(self):
         my_rocket.update()
+
+        self.liveslabel = self.myfont.render("Lives = " +str(game.get_lives()), 1,RED)
+        self.ammolabel = self.myfont.render("Ammo = "+str(my_rocket.get_ammo()),1,RED)
+        self.scorelabel = self.myfont.render("Score = "+str(game.get_score()),1,RED)
+        self.levellabel = self.myfont.render("Level = "+str(game.get_level()),1,RED)
     def render(self,screen):
 
         screen.blit(self.background,(0,0))
-        screen.blit(self.label,(100,300))
+        screen.blit(self.liveslabel,(5,480))
+        screen.blit(self.scorelabel,(110,480))
+        screen.blit(self.levellabel,(110,455))
+        screen.blit(self.ammolabel,(5,455))
         my_rocket.draw(screen)
 
         #logic func updates and renders spawn, also processes colisions
-        logic(screen)
+        logic(screen,self)
+
+
     def event_handler(self,events):
         for event in events:
             self.quit(event)
@@ -625,6 +649,8 @@ class StartScreen(MasterState):
     def event_handler(self,events):
         for event in events:
             self.quit(event)
+            keydown(event)
+            keyup(event)
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     self.current.change(LevelOne(screen))
@@ -657,6 +683,8 @@ class PauseState(MasterState):
     def event_handler(self,events):
         for event in events:
             self.quit(event)
+            keydown(event)
+            keyup(event)
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_p:
                     self.current.change(LevelOne(screen))
@@ -697,7 +725,7 @@ the_ghost = Ghost([40,100],[1,1],0,0,ghost_image,ghost_info,"blue")
 the_wind = Wind([40,150],[1,1],0,2,spirl_blue_image,spirl_info,"blue")
 the_bird = Bird([40,150],[1,1],0,0,bird_blue_image,bird_info,"blue")
 
-def logic(canvas):
+def logic(canvas,manager):
 
     process_sprite_group(game.get_cap_group(),canvas)
     rocket_caps_collide(my_rocket,game.get_cap_group())
@@ -710,7 +738,7 @@ def logic(canvas):
     rocket_mobs_collide(my_rocket,game.get_mob_group())
 
     score_point(my_rocket)
-    start_again()
+    start_again(manager)
 
 my_rocket = Rocket(list(ROCKET_SPAWN),[0,0],rocket_image,rocket_info)
 red_bird=()
