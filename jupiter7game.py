@@ -696,7 +696,7 @@ class InstructionState(MasterState):
         MasterState.__init__(self,screen)
         self.background = background_image
         self.font = pygame.font.SysFont("fixedsys",18)
-        self.text = self.font.render("FUCK YOU FIGURE IT OUT",1,RED)
+        self.text = self.font.render("test, press M to return",1,RED)
         self.age = 0
     def update(self):
         pass
